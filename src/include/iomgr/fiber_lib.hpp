@@ -1,5 +1,9 @@
 #pragma once
 
+#include <queue>
+#include <memory>
+#include <tuple>
+
 #ifdef USE_FOLLY_FIBER
 #include <folly/fibers/FiberManager.h>
 #include <folly/futures/Future.h>
@@ -38,6 +42,47 @@ private:
     boost::fibers::fiber_specific_ptr< IOFiber > m_this_fiber;
 
 public:
+    template < typename T, typename... Args >
+    class FiberLocal {
+    private:
+        boost::fibers::fiber_specific_ptr< T > m_ptr;
+        std::tuple< Args... > m_args;
+
+    private:
+        template < std::size_t... Is >
+        void create(const std::tuple< Args... >& tuple, std::index_sequence< Is... >) {
+            //////////// BIG TODO ///////////////
+            // We are creating a new instance of boost::fiber_specific_ptr for non fiber context as well. The
+            // expectation is fiber_specific_ptr shouldn't be destructed until the thread/fiber that used is destructed.
+            // However, when we use FiberLocal from a non-fiber context, there is no guarantee that thread will destruct
+            // before the variable themselves (however careful we are by putting FiberLocal as global/static etc). As a
+            // result it causes memory leak. To overcome that are we are creating unique_ptrs and putting them on
+            // thread_locals and then using fiber_specific_ptr only to hold pointer (and not free when fiber exits). As
+            // a result if a fiber uses a FiberLocal variable, its memory stays always till the main exits.
+            //
+            // Assuming there won't be more than say 10 fiber local variables used and perhaps 100 fibers touching these
+            // variables, it is OK, since we will be holding 1000 instances (which is fine).  Once we support
+            // dynamically creating/deleting fibers, this will be a reason for MEMORY INCREASE. So we should find out an
+            // effective way for identfying if we are running in a fiber or not instead of blindly creating
+            // fiber_local_ptrs.
+            static thread_local std::vector< std::unique_ptr< T > > thread_fiber_locals;
+            auto t = std::unique_ptr< T >(new T(std::get< Is >(tuple)...));
+            m_ptr.reset(t.get());
+            thread_fiber_locals.emplace_back(std::move(t));
+        }
+
+    public:
+        template < class... Args1 >
+        FiberLocal(Args1&&... args) : m_ptr{[](T*) {}}, m_args(std::forward< Args1 >(args)...) {}
+
+        T* get() {
+            if (m_ptr.get() == nullptr) { create(m_args, std::index_sequence_for< Args... >()); }
+            return m_ptr.get();
+        }
+        T* operator->() { return get(); }
+        T& operator*() { return *get(); }
+    };
+
     template < typename T >
     class Future : public boost::fibers::future< T > {};
 
