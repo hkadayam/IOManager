@@ -40,9 +40,14 @@ SISL_OPTIONS_ENABLE(ENABLED_OPTIONS)
 static uint64_t g_prev_val{0};
 static uint64_t g_cur_val{1};
 
+struct A {
+    uint32_t value_{100};
+};
+
 class SharedMutexTest : public testing::Test {
 protected:
     iomgr::FiberManagerLib::shared_mutex m_cb_mtx;
+    iomgr::FiberManagerLib::FiberLocal< A > m_f_local;
     std::vector< iomgr::io_fiber_t > m_fibers;
     uint64_t m_count_per_fiber{0};
     std::mutex m_test_done_mtx;
@@ -92,10 +97,11 @@ protected:
         }
     }
 
-    void all_reader() {
+    void all_reader(uint32_t fiber_num = std::numeric_limits< uint32_t >::max()) {
         for (uint64_t i{0}; i < m_count_per_fiber; ++i) {
             read_once();
         }
+        if (fiber_num != std::numeric_limits< uint32_t >::max()) { ASSERT_EQ(m_f_local->value_, fiber_num); }
 
         LOGINFO("Fiber completed {} of shared locks", m_count_per_fiber);
         {
@@ -144,8 +150,12 @@ protected:
 
 TEST_F(SharedMutexTest, single_writer_multiple_readers) {
     iomanager.run_on_forget(m_fibers[0], [this]() { all_writer(); });
-    for (auto it = m_fibers.begin() + 1; it < m_fibers.end(); ++it) {
-        iomanager.run_on_forget(*it, [this]() { all_reader(); });
+
+    for (uint32_t i{1}; i < m_fibers.size(); ++i) {
+        iomanager.run_on_forget(m_fibers[i], [this, i]() {
+            m_f_local->value_ = i;
+            all_reader(i);
+        });
     }
 
     {
@@ -163,6 +173,16 @@ TEST_F(SharedMutexTest, random_reader_writers) {
         std::unique_lock< std::mutex > lk(m_test_done_mtx);
         m_test_done_cv.wait(lk, [&]() { return m_test_count == 0; });
     }
+}
+
+TEST_F(SharedMutexTest, lock_on_non_fibers) {
+    auto t1 = std::thread([this]() { all_writer(); });
+    auto t2 = std::thread([this]() {
+        m_f_local->value_ = 0;
+        all_reader(0);
+    });
+    t1.join();
+    t2.join();
 }
 
 int main(int argc, char* argv[]) {
