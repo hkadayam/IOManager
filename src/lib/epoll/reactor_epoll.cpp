@@ -257,8 +257,10 @@ void IOReactorEPoll::on_user_iodev_notification(IODevice* iodev, int event) {
     ++m_metrics->outstanding_ops;
     ++m_metrics->io_event_wakeup_count;
 
-    REACTOR_LOG(TRACE, "Processing event on user iodev: {}", iodev->dev_id());
-    iodev->cb(iodev, iodev->cookie, event);
+    if (iodev->cb) {
+        REACTOR_LOG(TRACE, "Processing event on user iodev: {}", iodev->dev_id());
+        iodev->cb(iodev, iodev->cookie, event);
+    }
 
     --m_metrics->outstanding_ops;
 }

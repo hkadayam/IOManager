@@ -130,6 +130,7 @@ jobs:
     - name: Prepare Recipes
       run: |
         ./prepare.sh
+        cd import/sisl && ./prepare.sh && cd ..
         conan export import/sisl oss/master
         cached_pkgs=$(ls -1d ~/.conan/data/*/*/*/*/package | sed 's,.*data/,,' | cut -d'/' -f1,2 | paste -sd',' - -)
         echo "::info:: Pre-cached: ${cached_pkgs}"
