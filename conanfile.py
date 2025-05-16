@@ -9,7 +9,7 @@ required_conan_version = ">=1.60.0"
 
 class IOMgrConan(ConanFile):
     name = "iomgr"
-    version = "12.1.2"
+    version = "12.1.3"
 
     homepage = "https://github.com/eBay/IOManager"
     description = "Asynchronous event manager"
@@ -35,7 +35,7 @@ class IOMgrConan(ConanFile):
         'grpc_support': False,
         'sanitize':     False,
         'testing':      'epoll_mode',
-        'spdk':         True,
+        'spdk':         False,
     }
 
     exports_sources = "CMakeLists.txt", "cmake/*", "src/*", "test/*", "LICENSE"
@@ -64,11 +64,13 @@ class IOMgrConan(ConanFile):
         self.test_requires("cpr/1.10.4")
 
     def requirements(self):
-        self.requires("sisl/[^13.1]@oss/master", transitive_headers=True)
+        self.requires("sisl/[^13.3]@oss/master", transitive_headers=True)
         if self.options.grpc_support:
             self.requires("grpc/[>=1.50]")
         if self.options.spdk:
             self.requires("spdk/nbi.21.07.y", transitive_headers=True)
+        else:
+            self.requires("liburing/[>=2.1]", transitive_headers=True)
         self.requires("pistache/nbi.0.0.5.1", transitive_headers=True)
         self.requires("libcurl/8.4.0", override=True)
         self.requires("lz4/1.9.4", override=True)
@@ -95,7 +97,12 @@ class IOMgrConan(ConanFile):
             self._download_grpc(self.source_folder)
 
         self.folders.source = "."
-        self.folders.build = join("build", str(self.settings.build_type))
+        if self.options.get_safe("sanitize"):
+            self.folders.build = join("build", "Sanitized")
+        elif self.options.get_safe("coverage"):
+            self.folders.build = join("build", "Coverage")
+        else:
+            self.folders.build = join("build", str(self.settings.build_type))
         self.folders.generators = join(self.folders.build, "generators")
 
         self.cpp.source.includedirs = ["src/include"]
@@ -145,6 +152,7 @@ class IOMgrConan(ConanFile):
         copy(self, "*.dll", self.build_folder, join(self.package_folder, "lib"), keep_path=False)
 
     def package_info(self):
+        self.cpp_info.system_libs.extend(["aio"])
         if  self.options.sanitize:
             self.cpp_info.sharedlinkflags.append("-fsanitize=address")
             self.cpp_info.exelinkflags.append("-fsanitize=address")

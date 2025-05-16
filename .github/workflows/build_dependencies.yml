@@ -131,6 +131,7 @@ jobs:
       run: |
         ./prepare.sh
         conan export import/sisl oss/master
+        cd import/sisl && ./prepare.sh && cd ..
         cached_pkgs=$(ls -1d ~/.conan/data/*/*/*/*/package | sed 's,.*data/,,' | cut -d'/' -f1,2 | paste -sd',' - -)
         echo "::info:: Pre-cached: ${cached_pkgs}"
       if: ${{ inputs.testing == 'True' || steps.restore-cache.outputs.cache-hit != 'true' }}
