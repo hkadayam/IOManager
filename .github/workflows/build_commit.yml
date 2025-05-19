@@ -18,9 +18,14 @@ on:
       tooling:
         required: true
         type: string
-
+      testing:
+        required: true
+        type: string
+      deps-only:
+        required: true
+        type: string
 jobs:
-  SislForkDeps:
+  SislBuild:
     uses: hkadayam/sisl/.github/workflows/build_dependencies.yml@master
     with:
       branch: master
@@ -29,10 +34,11 @@ jobs:
       malloc-impl: ${{ inputs.malloc-impl }}
       prerelease: ${{ inputs.prerelease }}
       tooling: None
-    if: ${{ github.event_name != 'pull_request' }}
+      testing: 'False'
+      deps-only: 'True'
 
-  IOMgrDeps:
-    needs: SislForkDeps
+  IOMgrPRBuild:
+    needs: SislBuild
     uses: ./.github/workflows/build_dependencies.yml
     with:
       branch: ${{ github.ref }}
@@ -42,16 +48,19 @@ jobs:
       prerelease: ${{ inputs.prerelease }}
       tooling: ${{ inputs.tooling }}
       testing: 'True'
-    if: ${{ github.event_name != 'pull_request' }}
-
-  IOMgrBuild:
-    uses: ./.github/workflows/build_dependencies.yml
-    with:
-      branch: ${{ github.ref }}
-      platform: ${{ inputs.platform }}
-      build-type: ${{ inputs.build-type }}
-      malloc-impl: ${{ inputs.malloc-impl }}
-      prerelease: ${{ inputs.prerelease }}
-      tooling: ${{ inputs.tooling }}
-      testing: 'True'
+      deps-only: 'False'
     if: ${{ github.event_name == 'pull_request' }}
+
+  IOMgrCommitBuild:
+    needs: SislBuild
+    uses: ./.github/workflows/build_dependencies.yml
+    with:
+      branch: ${{ github.ref }}
+      platform: ${{ inputs.platform }}
+      build-type: ${{ inputs.build-type }}
+      malloc-impl: ${{ inputs.malloc-impl }}
+      prerelease: ${{ inputs.prerelease }}
+      tooling: ${{ inputs.tooling }}
+      testing: 'False'
+      deps-only: 'False'
+    if: ${{ github.event_name != 'pull_request' }}

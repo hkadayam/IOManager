@@ -26,4 +26,6 @@ add_subdirectory (lib)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/lib)
 
-add_subdirectory(test)
+if(NOT DEFINED BUILD_TESTING OR BUILD_TESTING)
+    add_subdirectory(test)
+endif()
