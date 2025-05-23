@@ -18,12 +18,10 @@ on:
       tooling:
         required: true
         type: string
-      testing:
+      build-level:
         required: true
         type: string
-      deps-only:
-        required: true
-        type: string
+
 jobs:
   SislBuild:
     uses: hkadayam/sisl/.github/workflows/build_dependencies.yml@master
@@ -34,8 +32,7 @@ jobs:
       malloc-impl: ${{ inputs.malloc-impl }}
       prerelease: ${{ inputs.prerelease }}
       tooling: None
-      testing: 'False'
-      deps-only: 'True'
+      build-level: 'Dependencies'
 
   IOMgrPRBuild:
     needs: SislBuild
@@ -47,8 +44,7 @@ jobs:
       malloc-impl: ${{ inputs.malloc-impl }}
       prerelease: ${{ inputs.prerelease }}
       tooling: ${{ inputs.tooling }}
-      testing: 'True'
-      deps-only: 'False'
+      build-level: 'Testing'
     if: ${{ github.event_name == 'pull_request' }}
 
   IOMgrCommitBuild:
@@ -61,6 +57,5 @@ jobs:
       malloc-impl: ${{ inputs.malloc-impl }}
       prerelease: ${{ inputs.prerelease }}
       tooling: ${{ inputs.tooling }}
-      testing: 'False'
-      deps-only: 'False'
+      build-level: 'Packaging'
     if: ${{ github.event_name != 'pull_request' }}

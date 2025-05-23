@@ -28,7 +28,7 @@ else
     echo -n "spdk."
     conan export --version nbi.21.07.y 3rd_party/spdk
     echo -n "pistache."
-    conan export --version nbi.0.0.5 3rd_party/pistache
+    conan export --version nbi.0.0.5.1 3rd_party/pistache
 fi
 
 echo "done."

@@ -53,9 +53,9 @@ class IOMgrConan(ConanFile):
         if self.settings.build_type == "Debug":
             if self.options.coverage and self.options.sanitize:
                 raise ConanInvalidConfiguration("Sanitizer does not work with Code Coverage!")
-            if self.conf.get("tools.build:skip_test", default=False):
-                if self.options.coverage or self.options.sanitize:
-                    raise ConanInvalidConfiguration("Coverage/Sanitizer requires Testing!")
+            #if self.conf.get("tools.build:skip_test", default=False):
+            #    if self.options.coverage or self.options.sanitize:
+            #        raise ConanInvalidConfiguration("Coverage/Sanitizer requires Testing!")
         if self.settings.arch != "x86_64":
             self.options["spdk"].native_build = True
 

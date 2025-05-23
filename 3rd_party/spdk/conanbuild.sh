@@ -1,0 +1,1 @@
+. "/sources/iomgr/3rd_party/spdk/conanautotoolstoolchain.sh" && . "/sources/iomgr/3rd_party/spdk/conanautotoolsdeps.sh" && . "/sources/iomgr/3rd_party/spdk/conanbuildenv-debug-x86_64.sh"
